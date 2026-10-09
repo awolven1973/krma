@@ -442,8 +442,6 @@
 
 (defun frame-iteration (dpy frame-count show-frame-rate?)
 
-  (bt:wait-on-semaphore (compacting-complete-semaphore dpy))
-  
   (let* ((current-frame-cons (current-frame-cons dpy))
 	 (current-draw-data-cons (current-draw-data-cons dpy))
 	 (current-frame (car current-frame-cons))
@@ -463,8 +461,6 @@
     
     (maybe-defer-debug (dpy)
       (call-immediate-mode-work-functions dpy))
-
-    
     
     ;; maybe create new descriptor set if select box size has changed
     ;; probably going to need a select box per framebuffer
@@ -481,9 +477,6 @@
       (maybe-defer-debug (dpy)
 	(let ((frame-resources (frame-resources window)))
 	  (vk::wait-for-fence device frame-resources current-frame))))
-    
-    
-
     
     (do ((window (clui::display-window-list-head dpy) (clui::window-next window)))
 	((null window))
@@ -528,14 +521,20 @@
 	  (maybe-defer-debug (dpy)
 	    (read-selection-set window number-of-images current-frame)))))
 
+    (bt:wait-on-semaphore (compacting-complete-semaphore dpy))
+    (bt:signal-semaphore (frame-iteration-complete-semaphore dpy))
+    
     (update-counts (current-frame-cons dpy) (current-draw-data-cons dpy) (number-of-images (swapchain (main-window (first (display-frame-managers dpy)))))))
 
-  (bt:signal-semaphore (frame-iteration-complete-semaphore dpy))
+  (bt:wait-on-semaphore (compactor-ready-semaphore dpy))
+  (bt:signal-semaphore (frame-iteration-ready-semaphore dpy))
   
   (values))
 
 (defun compactor-thread-iteration (dpy active-scenes)
-  (bt:wait-on-semaphore (frame-iteration-complete-semaphore dpy))
+  (bt:signal-semaphore (compactor-ready-semaphore dpy))
+  (bt:wait-on-semaphore (frame-iteration-ready-semaphore dpy))
+  
   (let* ((current-draw-data-cons (current-draw-data-cons dpy))
 	 (alt-index (mod (1+ (car current-draw-data-cons)) 2))
 	 (releaseme-queue (aref (releaseme-queues dpy) alt-index)))
@@ -546,12 +545,13 @@
 	    while (setq work (and (lparallel.queue:peek-queue releaseme-queue)
 				  (lparallel.queue:pop-queue releaseme-queue)))
 	    do (funcall work)))
+
     
     (loop for active-scene in active-scenes
 	  do (let* ((rm-draw-data-pair (rm-draw-data active-scene))
 		    (draw-data (aref rm-draw-data-pair alt-index))
 		    (work-queue (draw-data-work-queue draw-data)))
-	       
+
 	       (maybe-defer-debug (dpy)
 		 (loop with work = nil
 		       while (setq work
@@ -559,9 +559,11 @@
 					(lparallel.queue:pop-queue work-queue)))
 		       do (funcall work)))
 	       
-	       (compact-draw-lists dpy draw-data)))
-    
-    (bt:signal-semaphore (compacting-complete-semaphore dpy))))
+	       (compact-draw-lists dpy draw-data releaseme-queue)))
+
+    (bt:signal-semaphore (compacting-complete-semaphore dpy))
+    (bt:wait-on-semaphore (frame-iteration-complete-semaphore dpy))
+    ))
 
 (defun compactor-loop (dpy)
   ;; doesn't start until after first render loop iteration

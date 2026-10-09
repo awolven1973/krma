@@ -4,7 +4,7 @@
   (when krma::*debug*
     (declaim (optimize (safety 3) (debug 3)))))
 
-(defun compact-draw-lists (dpy rm-draw-data)
+(defun compact-draw-lists (dpy rm-draw-data releaseme-queue)
   (declare (ignore dpy))
 
   (restart-bind ((ignore (lambda (&optional c)
@@ -26,19 +26,19 @@
 		   3d-triangle-strip-draw-list
 		   3d-triangle-strip-with-normals-draw-list) rm-draw-data
     
-	(setf 2d-point-list-draw-list (compact-draw-list-group 2d-point-list-draw-list)
-	      2d-line-list-draw-list (compact-draw-list-group 2d-line-list-draw-list)
-	      2d-triangle-list-draw-list (compact-draw-list-group 2d-triangle-list-draw-list)
-	      2d-triangle-list-draw-list-for-text (compact-draw-list-group 2d-triangle-list-draw-list-for-text)
-	      3d-point-list-draw-list (compact-draw-list-group 3d-point-list-draw-list)
-	      3d-line-list-draw-list (compact-draw-list-group 3d-line-list-draw-list)
-	      3d-triangle-list-draw-list (compact-draw-list-group 3d-triangle-list-draw-list)
-	      3d-triangle-list-with-normals-draw-list (compact-draw-list-group 3d-triangle-list-with-normals-draw-list)
-	      2d-line-strip-draw-list (compact-draw-list-group 2d-line-strip-draw-list)
-	      2d-triangle-strip-draw-list (compact-draw-list-group 2d-triangle-strip-draw-list)
-	      3d-line-strip-draw-list (compact-draw-list-group 3d-line-strip-draw-list)
-	      3d-triangle-strip-draw-list (compact-draw-list-group 3d-triangle-strip-draw-list)
-	      3d-triangle-strip-with-normals-draw-list (compact-draw-list-group 3d-triangle-strip-with-normals-draw-list))
+	(setf 2d-point-list-draw-list (compact-draw-list-group 2d-point-list-draw-list releaseme-queue)
+	      2d-line-list-draw-list (compact-draw-list-group 2d-line-list-draw-list releaseme-queue)
+	      2d-triangle-list-draw-list (compact-draw-list-group 2d-triangle-list-draw-list releaseme-queue)
+	      2d-triangle-list-draw-list-for-text (compact-draw-list-group 2d-triangle-list-draw-list-for-text releaseme-queue)
+	      3d-point-list-draw-list (compact-draw-list-group 3d-point-list-draw-list releaseme-queue)
+	      3d-line-list-draw-list (compact-draw-list-group 3d-line-list-draw-list releaseme-queue)
+	      3d-triangle-list-draw-list (compact-draw-list-group 3d-triangle-list-draw-list releaseme-queue)
+	      3d-triangle-list-with-normals-draw-list (compact-draw-list-group 3d-triangle-list-with-normals-draw-list releaseme-queue)
+	      2d-line-strip-draw-list (compact-draw-list-group 2d-line-strip-draw-list releaseme-queue)
+	      2d-triangle-strip-draw-list (compact-draw-list-group 2d-triangle-strip-draw-list releaseme-queue)
+	      3d-line-strip-draw-list (compact-draw-list-group 3d-line-strip-draw-list releaseme-queue)
+	      3d-triangle-strip-draw-list (compact-draw-list-group 3d-triangle-strip-draw-list releaseme-queue)
+	      3d-triangle-strip-with-normals-draw-list (compact-draw-list-group 3d-triangle-strip-with-normals-draw-list releaseme-queue))
 
 	;; wow. i'm not compacting any of the draw lists in tables. who'da thunk.
     
@@ -63,23 +63,30 @@
     (and cmd-vector num-deleted
 	 (> (car num-deleted) (floor (* (fill-pointer cmd-vector) *compact-trigger*))))))
 
-(defun compact-draw-list-group (draw-list)
+(defun compact-draw-list-group (draw-list releaseme-queue)
   (unless (draw-list-needs-compaction? draw-list)
     (return-from compact-draw-list-group draw-list))
-  (compact-draw-list-group-1 draw-list))
+  (compact-draw-list-group-1 draw-list releaseme-queue))
 
-(defun release-device-memory-draw-list-group (draw-list)
+(defun release-device-memory-draw-list-group (draw-list releaseme-queue)
   (do ((dl draw-list (draw-list-prev draw-list)))
       ((null dl))
     (let ((im (draw-list-index-memory dl))
 	  (vm (draw-list-vertex-memory dl)))
       (when im
-	(release-memory im))
+	(lparallel.queue:push-queue
+	 #'(lambda ()
+	     (release-memory im))
+	 releaseme-queue))
       (when vm
-	(release-memory vm)))))
+	(lparallel.queue:push-queue
+	 #'(lambda ()
+	     (release-memory vm))
+	 releaseme-queue)))))
 
-(defun compact-draw-list-group-1 (draw-list)
-  (let* ((orig-cmd-vector (draw-list-cmd-vector draw-list)))
+(defun compact-draw-list-group-1 (draw-list releaseme-queue)
+  (let* ((orig-cmd-vector (draw-list-cmd-vector draw-list))
+	 (copy (copy-seq orig-cmd-vector)))
     
     (unless orig-cmd-vector
       (return-from compact-draw-list-group-1 draw-list))
@@ -166,7 +173,13 @@
 		 
 		 finally (return loc)))
 
-      (release-device-memory-draw-list-group draw-list))))
+      (release-device-memory-draw-list-group draw-list releaseme-queue)
+      (assert (loop for c1 across orig-cmd-vector
+		    for c2 across copy
+		    unless (eq c1 c2)
+		      do (return nil)
+		    finally (return t)))
+      )))
 
 
 	
