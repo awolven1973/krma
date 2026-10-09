@@ -1771,18 +1771,12 @@
       (let ((cmd (gethash handle ht)))
         (if (listp cmd)
             (warn "while in %delete-primitive-1 ...could not find primitive to delete ~S" handle)
-            (let* ((draw-list (cmd-draw-list cmd))
-                   (cmd-vector (draw-list-cmd-vector draw-list)))
-              (loop for entry across cmd-vector
-		 for i from 0
-		 when (and entry (eq cmd entry))
-		   do (setf (aref cmd-vector i) nil)
-		      (remhash handle ht)
-		      (when (cmd-instance-array cmd)
-			(let ((memory (instance-list-memory (cmd-instance-array cmd))))
-			  (when memory
-			    (release-memory memory))))
-		   (return (values))))))
+	    (progn (setf (cmd-deleted? cmd) t)
+		   (remhash handle ht)
+		   (let* ((draw-list (cmd-draw-list cmd)))
+		     (when (draw-list-num-deleted draw-list)
+		       (incf (car (draw-list-num-deleted draw-list)))))))
+	(values))
     (error (c)
       (warn (concatenate 'string "while in %delete-primitive-1 ..." (princ-to-string c)))
       (values))))
@@ -1841,11 +1835,13 @@
 		     new-ht))
 
                (delete-primitives-with-groups (draw-list)
-                 (let ((cmd-vector (draw-list-cmd-vector draw-list)))
-                   (loop for cmd across cmd-vector
-                         for i from 0
-                         when (and cmd (find (cmd-group cmd) list-of-groups))
-			   do (setf (aref cmd-vector i) nil)))))
+		 (let ((cmd-vector (draw-list-cmd-vector draw-list)))
+		   (when cmd-vector
+		     (loop for cmd across cmd-vector
+			   when (find (cmd-group cmd) list-of-groups)
+			     do (setf (cmd-deleted? cmd) t)
+				(when (draw-list-num-deleted draw-list)
+				  (incf (car (draw-list-num-deleted draw-list)))))))))
 
           (with-slots (2d-point-list-draw-list-table
                        2d-line-list-draw-list-table
@@ -2063,38 +2059,36 @@
     (flet ((do-sort (draw-list)
 	     (let ((cmds (draw-list-cmd-vector draw-list)))
 	       (sort cmds #'(lambda (one two)
-			      (if (null one)
-				  nil
-				  (if (null two)
-				      t
-				      ;; this is a lot of work to find the 'actual' elevation of a primitive
-				      (let ((elevation1 (vec4 0 0 (cmd-elevation one) 1))
-					    (group1 (cmd-group one))
-					    (elevation2 (vec4 0 0 (cmd-elevation two) 1))
-					    (group2 (cmd-group two)))
-					#+NIL
-					(when (cmd-model-mtx one)
-					  (setq elevation1 (m* (cmd-model-mtx one) elevation1)))
-					#+NIL
-					(when (cmd-model-mtx two)
-					  (setq elevation2 (m* (cmd-model-mtx two) elevation2)))
-					(when group1
-					  (let ((g1 (gethash group1 (rm-draw-data-group-hash-table draw-data))))
-					    (when g1
-					      (let ((m1 (group-model-matrix g1)))
-						(when m1
-						  (setq elevation1 (m* m1 elevation1)))))))
-					(when group2
-					  (let ((g2 (gethash group2 (rm-draw-data-group-hash-table draw-data))))
-					    (when g2
-					      (let ((m2 (group-model-matrix g2)))
-						(when m2
-						  (setq elevation2 (m* m2 elevation2)))))))
-					(< (vz (safe-euclid elevation1)) (vz (safe-euclid elevation2))))))))))
+			      (let ((elevation1 (vec4 0 0 (cmd-elevation one) 1))
+				    (group1 (cmd-group one))
+				    (elevation2 (vec4 0 0 (cmd-elevation two) 1))
+				    (group2 (cmd-group two)))
+				#+NIL
+				(when (cmd-model-mtx one)
+				  (setq elevation1 (m* (cmd-model-mtx one) elevation1)))
+				#+NIL
+				(when (cmd-model-mtx two)
+				  (setq elevation2 (m* (cmd-model-mtx two) elevation2)))
+				(when group1
+				  (let ((g1 (gethash group1 (rm-draw-data-group-hash-table draw-data))))
+				    (when g1
+				      (let ((m1 (group-model-matrix g1)))
+					(when m1
+					  (setq elevation1 (m* m1 elevation1)))))))
+				(when group2
+				  (let ((g2 (gethash group2 (rm-draw-data-group-hash-table draw-data))))
+				    (when g2
+				      (let ((m2 (group-model-matrix g2)))
+					(when m2
+					  (setq elevation2 (m* m2 elevation2)))))))
+				(< (vz (safe-euclid elevation1)) (vz (safe-euclid elevation2))))))))
 	   (check-for-compaction (draw-list)
 	     ;; should this be done in compaction thread?
 	     ;; seems convenient here, since it's sorted
 	     ;; actually, don't i already compact cmd vector in compaction thread??
+	     
+		 
+	     #+NOMORE
 	     (let* ((cmds (draw-list-cmd-vector draw-list))
 		    (pos (position nil cmds)))
 	       (when pos
@@ -2103,13 +2097,13 @@
 		     (setf (draw-list-needs-compaction? draw-list) t)))))))
       
       (do-sort 2d-point-list-draw-list)
-      (check-for-compaction 2d-point-list-draw-list)
+      ;;(check-for-compaction 2d-point-list-draw-list)
       (do-sort 2d-line-list-draw-list)
-      (check-for-compaction 2d-line-list-draw-list)
+      ;;(check-for-compaction 2d-line-list-draw-list)
       (do-sort 2d-triangle-list-draw-list)
-      (check-for-compaction 2d-triangle-list-draw-list)
+      ;;(check-for-compaction 2d-triangle-list-draw-list)
       (do-sort 2d-triangle-list-draw-list-for-text)
-      (check-for-compaction 2d-triangle-list-draw-list-for-text))))
+      #+NIL(check-for-compaction 2d-triangle-list-draw-list-for-text))))
 	       
 (defun delete-all-from-scene (scene)
   (rm-dispatch-to-render-thread (scene draw-data)

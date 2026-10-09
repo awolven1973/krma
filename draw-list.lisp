@@ -114,7 +114,7 @@
           (values))))))
 
 
-(defun %draw-list-add-2d-point (2d-draw-list ub32-oid atom-group model-mtx sf-point-size ub32-color sf-elevation sf-x sf-y)
+(defun %draw-list-add-2d-point (2d-draw-list cmd-vector ub32-oid atom-group model-mtx sf-point-size ub32-color sf-elevation sf-x sf-y)
   ;; for point-list-pipeline
   (declare (type 3d-vertex-draw-list-mixin 2d-draw-list))
   (declare (type (unsigned-byte 32) ub32-oid ub32-color))
@@ -129,7 +129,7 @@
 		    2d-draw-list
 		    first-index 1 vtx-offset
 		    atom-group model-mtx nil *white-texture* sf-point-size nil nil sf-elevation)))
-	  (vector-push-extend cmd (draw-list-cmd-vector 2d-draw-list))
+	  (vector-push-extend cmd cmd-vector)
 	  cmd)))))
 
 
@@ -147,7 +147,7 @@
           (values))))))
 
 
-(defun %draw-list-add-3d-point (3d-draw-list ub32-oid atom-group model-mtx sf-point-size ub32-color sf-x sf-y sf-z)
+(defun %draw-list-add-3d-point (3d-draw-list cmd-vector ub32-oid atom-group model-mtx sf-point-size ub32-color sf-x sf-y sf-z)
   ;; for point-list-pipeline
   (declare (type 3d-vertex-draw-list-mixin 3d-draw-list))
   (declare (type (unsigned-byte 32) ub32-oid ub32-color))
@@ -162,7 +162,7 @@
 		    3d-draw-list
 		    first-index 1 vtx-offset
 		    atom-group model-mtx nil *white-texture* sf-point-size nil nil)))
-	  (vector-push-extend cmd (draw-list-cmd-vector 3d-draw-list))
+	  (vector-push-extend cmd cmd-vector)
 	  cmd)))))
 
 
@@ -183,7 +183,7 @@
         (values)))))
 
 
-(defun %draw-list-add-2d-line (2d-draw-list ub32-oid atom-group model-mtx sf-line-thickness ub32-color sf-elevation sf-x0 sf-y0 sf-x1 sf-y1)
+(defun %draw-list-add-2d-line (2d-draw-list cmd-vector ub32-oid atom-group model-mtx sf-line-thickness ub32-color sf-elevation sf-x0 sf-y0 sf-x1 sf-y1)
   ;; for line-list pipeline
   (declare (type 3d-vertex-draw-list-mixin 2d-draw-list))
   (declare (type (unsigned-byte 32) ub32-oid ub32-color))
@@ -201,7 +201,7 @@
                   2d-draw-list
                   first-index 2 vtx-offset
                   atom-group model-mtx nil *white-texture* nil sf-line-thickness nil sf-elevation)))
-        (vector-push-extend cmd (draw-list-cmd-vector 2d-draw-list))
+        (vector-push-extend cmd cmd-vector)
         cmd))))
 
 
@@ -222,7 +222,7 @@
         (values)))))
 
 
-(defun %draw-list-add-3d-line (3d-draw-list ub32-oid atom-group model-mtx sf-line-thickness ub32-color
+(defun %draw-list-add-3d-line (3d-draw-list cmd-vector ub32-oid atom-group model-mtx sf-line-thickness ub32-color
 			       sf-x0 sf-y0 sf-z0 sf-x1 sf-y1 sf-z1)
   ;; for line-list pipeline
   (declare (type 3d-vertex-draw-list-mixin 3d-draw-list))
@@ -241,7 +241,7 @@
 		  3d-draw-list
 		  first-index 2 vtx-offset
 		  atom-group model-mtx nil *white-texture* nil sf-line-thickness nil)))
-	(vector-push-extend cmd (draw-list-cmd-vector 3d-draw-list))
+	(vector-push-extend cmd cmd-vector)
 	cmd))))
 
 
@@ -290,7 +290,7 @@
 
 
 
-(defun %draw-list-add-2d-polyline (2d-draw-list ub32-oid atom-group model-mtx bool-closed?
+(defun %draw-list-add-2d-polyline (2d-draw-list cmd-vector ub32-oid atom-group model-mtx bool-closed?
 				   sf-line-thickness ub32-color sf-elevation seq-vertices)
   ;; for line-strip pipeline
   (declare (type 3d-vertex-draw-list-mixin 2d-draw-list))
@@ -321,17 +321,17 @@
                   2d-draw-list
                   first-index elem-count vtx-offset
                   atom-group model-mtx nil *white-texture* nil sf-line-thickness nil sf-elevation)))
-        (vector-push-extend cmd (draw-list-cmd-vector 2d-draw-list))
+        (vector-push-extend cmd cmd-vector)
         cmd))))
 
 
-(defun %draw-list-add-2d-rectangle (2d-draw-list ub32-oid atom-group model-mtx sf-line-thickness ub32-color sf-elevation
+(defun %draw-list-add-2d-rectangle (2d-draw-list cmd-vector ub32-oid atom-group model-mtx sf-line-thickness ub32-color sf-elevation
                                     sf-x0 sf-y0 sf-x1 sf-y1)
   ;; for line-strip pipeline
   (declare (type 3d-vertex-draw-list-mixin 2d-draw-list))
   (declare (type (unsigned-byte 32) ub32-color))
   (declare (type single-float sf-x0 sf-y0 sf-x1 sf-y1))
-  (%draw-list-add-2d-polyline 2d-draw-list ub32-oid atom-group model-mtx t sf-line-thickness sf-elevation
+  (%draw-list-add-2d-polyline 2d-draw-list cmd-vector ub32-oid atom-group model-mtx t sf-line-thickness sf-elevation
 			      ub32-color (list sf-x0 sf-y0 sf-x0 sf-y1 sf-x1 sf-y1 sf-x1 sf-y0)))
 
 ;; the argument `seq-vertices' is a cl sequence of x y color ... repeating
@@ -371,7 +371,7 @@
 	       (return (values))))))))
 
 
-(defun %draw-list-add-multicolor-2d-polyline (2d-draw-list ub32-oid atom-group model-mtx bool-closed? sf-line-thickness sf-elevation
+(defun %draw-list-add-multicolor-2d-polyline (2d-draw-list cmd-vector ub32-oid atom-group model-mtx bool-closed? sf-line-thickness sf-elevation
 					      seq-vertices)
   ;; uses line-strip
   (declare (type 3d-vertex-draw-list-mixin 2d-draw-list))
@@ -381,7 +381,6 @@
   ;; there must be at least one vertex to succeed
   (let* ((index-array (draw-list-index-array 2d-draw-list))
          (vertex-array (draw-list-vertex-array 2d-draw-list))
-         (cmd-vector (draw-list-cmd-vector 2d-draw-list))
          (vtx-offset (foreign-array-fill-pointer vertex-array))
          (first-index (foreign-array-fill-pointer index-array))
          (elem-count 0))
@@ -432,14 +431,13 @@
 		   finally (return (values))))))))))
 
 
-(defun %draw-list-add-2d-line-list (2d-draw-list ub32-oid atom-group model-mtx sf-line-thickness ub32-color sf-elevation seq-vertices)
+(defun %draw-list-add-2d-line-list (2d-draw-list cmd-vector ub32-oid atom-group model-mtx sf-line-thickness ub32-color sf-elevation seq-vertices)
   (declare (type 3d-vertex-draw-list-mixin 2d-draw-list))
   (declare (type sequence seq-vertices))
   (let* ((index-array (draw-list-index-array 2d-draw-list))
 	 (vertex-array (draw-list-vertex-array 2d-draw-list))
 	 (first-index (foreign-array-fill-pointer index-array))
          (vtx-offset (foreign-array-fill-pointer vertex-array))
-	 (cmd-vector (draw-list-cmd-vector 2d-draw-list))
 	 (elem-count 0))
     (declare (type fixnum elem-count))
     (with-draw-list-transaction (%draw-list-add-2d-line-list 2d-draw-list first-index vtx-offset)
@@ -508,7 +506,7 @@
 
 
 
-(defun %draw-list-add-2d-circular-arc (2d-draw-list ub32-oid atom-group model-mtx bool-closed? sf-line-thickness ub32-color sf-elevation
+(defun %draw-list-add-2d-circular-arc (2d-draw-list cmd-vector ub32-oid atom-group model-mtx bool-closed? sf-line-thickness ub32-color sf-elevation
                                        df-center-x df-center-y df-radius df-start-angle df-end-angle
                                        fixnum-number-of-segments)
   ;; for use with line strip pipeline
@@ -546,7 +544,7 @@
                               first-index (1+ fixnum-number-of-segments) vtx-offset
                               atom-group model-mtx nil *white-texture* nil
 			      sf-line-thickness nil sf-elevation)))
-	    (vector-push-extend cmd (draw-list-cmd-vector 2d-draw-list))
+	    (vector-push-extend cmd cmd-vector)
 	    cmd))))))
 
 
@@ -585,7 +583,7 @@
 	    finally (return (values))))))
 
 
-(defun %draw-list-add-2d-circle (2d-draw-list ub32-oid atom-group model-mtx sf-line-thickness ub32-color sf-elevation
+(defun %draw-list-add-2d-circle (2d-draw-list cmd-vector ub32-oid atom-group model-mtx sf-line-thickness ub32-color sf-elevation
                                  df-center-x df-center-y df-radius fixnum-number-of-segments)
   (declare (type 3d-vertex-draw-list-mixin 2d-draw-list))
   (declare (type (unsigned-byte 32) ub32-oid ub32-color))
@@ -611,7 +609,7 @@
                             first-index (1+ fixnum-number-of-segments) vtx-offset
                             atom-group model-mtx nil *white-texture* nil
 			    sf-line-thickness nil sf-elevation)))
-          (vector-push-extend cmd (draw-list-cmd-vector 2d-draw-list))
+          (vector-push-extend cmd cmd-vector)
           cmd)))))
 
 
@@ -662,7 +660,7 @@
                (return (values))))))))
 
 
-(defun %draw-list-add-3d-polyline (3d-draw-list ub32-oid atom-group model-mtx bool-closed? sf-line-thickness ub32-color
+(defun %draw-list-add-3d-polyline (3d-draw-list cmd-vector ub32-oid atom-group model-mtx bool-closed? sf-line-thickness ub32-color
 				   seq-vertices)
   ;; line-strip
   (declare (type 3d-vertex-draw-list-mixin 3d-draw-list))
@@ -719,7 +717,7 @@
                   3d-draw-list
                   first-index elem-count vtx-offset
                   atom-group model-mtx nil *white-texture* nil sf-line-thickness nil)))
-        (vector-push-extend cmd (draw-list-cmd-vector 3d-draw-list))
+        (vector-push-extend cmd cmd-vector)
         cmd))))
 
 
@@ -762,7 +760,7 @@
 
 
 (defun %draw-list-add-multicolor-3d-polyline
-    (3d-draw-list ub32-oid atom-group model-mtx bool-closed? sf-line-thickness seq-vertices)
+    (3d-draw-list cmd-vector ub32-oid atom-group model-mtx bool-closed? sf-line-thickness seq-vertices)
   ;; line-strip
   (declare (type 3d-vertex-draw-list-mixin 3d-draw-list))
   (declare (type single-float sf-line-thickness))
@@ -794,7 +792,7 @@
                   3d-draw-list
                   first-index elem-count vtx-offset
                   atom-group model-mtx nil *white-texture* nil sf-line-thickness nil)))
-        (vector-push-extend cmd (draw-list-cmd-vector 3d-draw-list))
+        (vector-push-extend cmd cmd-vector)
         cmd))))
 
 
@@ -818,7 +816,7 @@
 	       finally (return (values))))))))
 
 
-(defun %draw-list-add-filled-2d-triangle-list (2d-draw-list ub32-oid atom-group model-mtx ub32-color sf-elevation seq-vertices)
+(defun %draw-list-add-filled-2d-triangle-list (2d-draw-list cmd-vector ub32-oid atom-group model-mtx ub32-color sf-elevation seq-vertices)
   (declare (type 3d-vertex-draw-list-mixin 2d-draw-list))
   (declare (type (unsigned-byte 32) ub32-oid ub32-color))
   (declare (type sequence seq-vertices))
@@ -844,10 +842,10 @@
 		  first-index number-of-vertices vtx-offset
 		  atom-group model-mtx
 		  nil *white-texture* nil nil nil sf-elevation)))
-        (vector-push-extend cmd (draw-list-cmd-vector 2d-draw-list))
+        (vector-push-extend cmd cmd-vector)
         cmd))))
 
-(defun %draw-list-add-filled-2d-triangle-strip (3d-draw-list ub32-oid atom-group model-mtx ub32-color sf-elevation seq-vertices)
+(defun %draw-list-add-filled-2d-triangle-strip (3d-draw-list cmd-vector ub32-oid atom-group model-mtx ub32-color sf-elevation seq-vertices)
   (declare (type 3d-vertex-draw-list-mixin 3d-draw-list))
   (declare (type (unsigned-byte 32) ub32-oid ub32-color))
   (declare (type sequence seq-vertices))
@@ -877,7 +875,7 @@
 		  first-index (* 3 (- number-of-vertices 2)) vtx-offset
 		  atom-group model-mtx
 		  nil *white-texture* nil nil nil)))
-        (vector-push-extend cmd (draw-list-cmd-vector 3d-draw-list))
+        (vector-push-extend cmd cmd-vector)
         cmd))))
 
 
@@ -918,7 +916,7 @@
 	       (return (values))))))))
 
 
-(defun %draw-list-add-filled-2d-rectangle-list (2d-draw-list ub32-oid atom-group model-mtx ub32-color sf-elevation seq-vertices)
+(defun %draw-list-add-filled-2d-rectangle-list (2d-draw-list cmd-vector ub32-oid atom-group model-mtx ub32-color sf-elevation seq-vertices)
   ;; triangle-list
   (declare (type 3d-vertex-draw-list-mixin 2d-draw-list))
   (declare (type (unsigned-byte 32) ub32-oid ub32-color))
@@ -956,7 +954,7 @@
 		    2d-draw-list
 		    first-index elem-count vtx-offset
 		    atom-group model-mtx nil *white-texture* nil nil nil sf-elevation)))
-          (vector-push-extend cmd (draw-list-cmd-vector 2d-draw-list))
+          (vector-push-extend cmd cmd-vector)
           cmd)))))
 
 
@@ -1002,7 +1000,7 @@
 			   (return (values))))))))))
 
 
-(defun %draw-list-add-textured-2d-rectangle-list (2d-draw-list ub32-oid atom-group model-mtx texture ub32-color sf-elevation seq-vertices 
+(defun %draw-list-add-textured-2d-rectangle-list (2d-draw-list cmd-vector ub32-oid atom-group model-mtx texture ub32-color sf-elevation seq-vertices 
                                                   &optional (cmd-constructor #'make-standard-draw-indexed-cmd))
   ;; used to implement add-text
   (declare (type 3d-vertex-draw-list-mixin 2d-draw-list))
@@ -1049,7 +1047,7 @@
 			    first-index elem-count vtx-offset
 			    atom-group model-mtx
 			    nil texture nil nil nil sf-elevation)))
-	  (vector-push-extend cmd (draw-list-cmd-vector 2d-draw-list))
+	  (vector-push-extend cmd cmd-vector)
 	  cmd)))))
 
 
@@ -1082,7 +1080,7 @@
 	       (return (values))))))))
 
 
-(defun %draw-list-add-filled-2d-convex-polygon (2d-draw-list ub32-oid atom-group model-mtx ub32-color sf-elevation seq-vertices)
+(defun %draw-list-add-filled-2d-convex-polygon (2d-draw-list cmd-vector ub32-oid atom-group model-mtx ub32-color sf-elevation seq-vertices)
   (declare (type 3d-vertex-draw-list-mixin 2d-draw-list))
   (declare (type (unsigned-byte 32) ub32-oid ub32-color))
   (declare (type sequence seq-vertices))
@@ -1112,7 +1110,7 @@
 		  2d-draw-list
 		  first-index (* 3 (- number-of-vertices 2)) vtx-offset
 		  atom-group model-mtx nil *white-texture* nil nil nil sf-elevation)))
-        (vector-push-extend cmd (draw-list-cmd-vector 2d-draw-list))
+        (vector-push-extend cmd cmd-vector)
         cmd))))
 
 
@@ -1154,7 +1152,7 @@
       )))
 
 
-(defun %draw-list-add-filled-3d-triangle-strip (3d-draw-list ub32-oid atom-group model-mtx ub32-color seq-vertices)
+(defun %draw-list-add-filled-3d-triangle-strip (3d-draw-list cmd-vector ub32-oid atom-group model-mtx ub32-color seq-vertices)
   (declare (type 3d-vertex-draw-list-mixin 3d-draw-list))
   (declare (type (unsigned-byte 32) ub32-oid ub32-color))
   (declare (type sequence seq-vertices))
@@ -1186,7 +1184,7 @@
 		  first-index (* 3 (- number-of-vertices 2)) vtx-offset
 		  atom-group model-mtx
 		  nil *white-texture* nil nil nil)))
-        (vector-push-extend cmd (draw-list-cmd-vector 3d-draw-list))
+        (vector-push-extend cmd cmd-vector)
         cmd))))
 
 
@@ -1219,7 +1217,7 @@
 			    (return (values))))))))
 
 (defun %draw-list-add-filled-3d-triangle-list
-    (3d-draw-list ub32-oid atom-group model-mtx ub32-color seq-vertices)
+    (3d-draw-list cmd-vector ub32-oid atom-group model-mtx ub32-color seq-vertices)
   (declare (type 3d-vertex-draw-list-mixin 3d-draw-list))
   (declare (type (unsigned-byte 32) ub32-oid ub32-color))
   (declare (type sequence seq-vertices))
@@ -1245,7 +1243,7 @@
 		  first-index number-of-vertices vtx-offset
 		  atom-group model-mtx
 		  nil *white-texture* nil nil nil)))
-        (vector-push-extend cmd (draw-list-cmd-vector 3d-draw-list))
+        (vector-push-extend cmd cmd-vector)
         cmd))))
 
 (defun %draw-list-draw-filled-3d-triangle-list
@@ -1272,7 +1270,7 @@
 			 (index-array-push-extend index-array offset))))))))
 
 (defun %draw-list-add-filled-3d-triangle-list-with-normals
-    (3d-draw-list ub32-oid atom-group model-mtx ub32-color seq-vertices material)
+    (3d-draw-list cmd-vector ub32-oid atom-group model-mtx ub32-color seq-vertices material)
   (declare (type 3d-vertex-with-normal-draw-list-mixin 3d-draw-list))
   (declare (type (unsigned-byte 32) ub32-oid ub32-color))
   (declare (type sequence seq-vertices))
@@ -1302,11 +1300,11 @@
 		  first-index number-of-vertices vtx-offset
 		  atom-group model-mtx
 		  nil *white-texture* nil nil material)))
-        (vector-push-extend cmd (draw-list-cmd-vector 3d-draw-list))
+        (vector-push-extend cmd cmd-vector)
         cmd))))
 
 (defun %draw-list-add-filled-3d-triangle-strip-with-normals
-    (3d-draw-list ub32-oid atom-group model-mtx ub32-color seq-vertices material)
+    (3d-draw-list cmd-vector ub32-oid atom-group model-mtx ub32-color seq-vertices material)
   (declare (type 3d-vertex-with-normal-draw-list-mixin 3d-draw-list))
   (declare (type (unsigned-byte 32) ub32-oid ub32-color))
   (declare (type sequence seq-vertices))
@@ -1341,7 +1339,7 @@
 		  first-index (* 3 (- number-of-vertices 2)) vtx-offset
 		  atom-group model-mtx
 		  nil *white-texture* nil nil material)))
-        (vector-push-extend cmd (draw-list-cmd-vector 3d-draw-list))
+        (vector-push-extend cmd cmd-vector)
         cmd))))
 
 
@@ -1375,7 +1373,7 @@
 
 
 (defun %draw-list-add-multicolor-3d-triangle-list-with-normals
-    (3d-draw-list ub32-oid atom-group model-mtx seq-vertices material)
+    (3d-draw-list cmd-vector ub32-oid atom-group model-mtx seq-vertices material)
   (declare (type 3d-vertex-draw-list-mixin 3d-draw-list))
   (declare (type sequence seq-vertices))
   ;; must be at least three vertices to succeed
@@ -1405,7 +1403,7 @@
 		  first-index number-of-vertices vtx-offset
 		  atom-group model-mtx
 		  nil *white-texture* nil nil material)))
-        (vector-push-extend cmd (draw-list-cmd-vector 3d-draw-list))
+        (vector-push-extend cmd cmd-vector)
         cmd))))
 
 
@@ -1438,7 +1436,7 @@
 	       (return (values))))))))
 
 
-(defun %draw-list-add-textured-3d-triangle-list (3d-draw-list ub32-oid atom-group model-mtx texture ub32-color seq-vertices)
+(defun %draw-list-add-textured-3d-triangle-list (3d-draw-list cmd-vector ub32-oid atom-group model-mtx texture ub32-color seq-vertices)
   (declare (type 3d-vertex-draw-list-mixin 3d-draw-list))
   (declare (type (unsigned-byte 32) ub32-oid ub32-color))
   (declare (type sequence seq-vertices))
@@ -1469,7 +1467,7 @@
 		  first-index number-of-vertices vtx-offset
 		  atom-group model-mtx
 		  nil texture nil nil nil)))
-        (vector-push-extend cmd (draw-list-cmd-vector 3d-draw-list))
+        (vector-push-extend cmd cmd-vector)
         cmd))))
 
 
@@ -1507,7 +1505,7 @@
 
 
 (defun %draw-list-add-textured-3d-triangle-list-with-normals
-    (3d-draw-list ub32-oid atom-group model-mtx texture ub32-color seq-vertices material)
+    (3d-draw-list cmd-vector ub32-oid atom-group model-mtx texture ub32-color seq-vertices material)
   (declare (type 3d-vertex-draw-list-mixin 3d-draw-list))
   (declare (type (unsigned-byte 32) ub32-oid ub32-color))
   (declare (type sequence seq-vertices))
@@ -1543,7 +1541,7 @@
 		  first-index number-of-vertices vtx-offset
 		  atom-group model-mtx
 		  nil texture nil nil material)))
-        (vector-push-extend cmd (draw-list-cmd-vector 3d-draw-list))
+        (vector-push-extend cmd cmd-vector)
         cmd))))
 
 
@@ -1596,7 +1594,7 @@
 	         finally (return (values)))))))))
 
 
-(defun %draw-list-add-multicolor-3d-convex-polygon-with-normals (3d-draw-list ub32-oid atom-group model-mtx seq-vertices material)
+(defun %draw-list-add-multicolor-3d-convex-polygon-with-normals (3d-draw-list cmd-vector ub32-oid atom-group model-mtx seq-vertices material)
   (declare (type 3d-vertex-with-normal-draw-list-mixin 3d-draw-list))
   (declare (type sequence seq-vertices))
   ;; must be at least 3 vertexes to succeed
@@ -1643,7 +1641,7 @@
 		  first-index elem-count vtx-offset
 		  atom-group model-mtx
 		  nil *white-texture* nil nil material)))
-	(vector-push-extend cmd (draw-list-cmd-vector 3d-draw-list))
+	(vector-push-extend cmd cmd-vector)
 	cmd))))
 
 
@@ -1694,7 +1692,7 @@
 		 (return (values)))))))))
 
 
-(defun %draw-list-add-multicolor-3d-convex-polygon (3d-draw-list ub32-oid atom-group model-mtx seq-vertices)
+(defun %draw-list-add-multicolor-3d-convex-polygon (3d-draw-list cmd-vector ub32-oid atom-group model-mtx seq-vertices)
   (declare (type 3d-vertex-draw-list-mixin 3d-draw-list))
   (declare (type sequence seq-vertices))
   ;; must be at least 3 vertexes to succeed
@@ -1738,7 +1736,7 @@
 		  first-index elem-count vtx-offset
 		  atom-group model-mtx
 		  nil *white-texture* nil nil)))
-        (vector-push-extend cmd (draw-list-cmd-vector 3d-draw-list))
+        (vector-push-extend cmd cmd-vector)
         cmd))))
 
 
@@ -1796,7 +1794,7 @@
 
 
 (defun %draw-list-add-filled-3d-convex-polygon-with-normals
-    (3d-draw-list ub32-oid atom-group model-mtx ub32-color seq-vertices material)
+    (3d-draw-list cmd-vector ub32-oid atom-group model-mtx ub32-color seq-vertices material)
   (declare (type 3d-vertex-with-normal-draw-list-mixin 3d-draw-list))
   (declare (type sequence seq-vertices))
   (declare (type (unsigned-byte 32) ub32-color))
@@ -1845,7 +1843,7 @@
 		  first-index elem-count vtx-offset
 		  atom-group model-mtx
 		  nil *white-texture* nil nil material)))
-	(vector-push-extend cmd (draw-list-cmd-vector 3d-draw-list))
+	(vector-push-extend cmd cmd-vector)
 	cmd))))
 
 
@@ -1895,7 +1893,7 @@
 		   finally (return (values))))))))))
 
 
-(defun %draw-list-add-filled-3d-convex-polygon (3d-draw-list ub32-oid atom-group model-mtx ub32-color seq-vertices)
+(defun %draw-list-add-filled-3d-convex-polygon (3d-draw-list cmd-vector ub32-oid atom-group model-mtx ub32-color seq-vertices)
   (declare (type 3d-vertex-draw-list-mixin 3d-draw-list))
   (declare (type sequence seq-vertices))
   (declare (type (unsigned-byte 32) ub32-oid ub32-color))
@@ -1940,7 +1938,7 @@
 		    first-index elem-count vtx-offset
 		    atom-group model-mtx
 		    nil *white-texture* nil nil nil)))
-          (vector-push-extend cmd (draw-list-cmd-vector 3d-draw-list))
+          (vector-push-extend cmd cmd-vector)
           cmd)))))
 
 
@@ -2012,6 +2010,7 @@
 
 
 (defun %draw-list-add-filled-sphere (3d-draw-list
+				     cmd-vector
 				     ub32-oid
 				     atom-group
 				     model-mtx
@@ -2080,10 +2079,11 @@
                       first-index elem-count vtx-offset
                       atom-group model-mtx
                       nil *white-texture* nil nil material)))
-	    (vector-push-extend cmd (draw-list-cmd-vector 3d-draw-list))
+	    (vector-push-extend cmd cmd-vector)
 	    cmd))))))
 
 (defun %draw-list-add-textured-sphere (3d-draw-list
+				       cmd-vector
 				       ub32-oid
 				       atom-group
 				       model-mtx
@@ -2159,10 +2159,11 @@
                       first-index elem-count vtx-offset
                       atom-group model-mtx
                       nil texture nil nil material)))
-	    (vector-push-extend cmd (draw-list-cmd-vector 3d-draw-list))
+	    (vector-push-extend cmd cmd-vector)
 	    cmd))))))
 
 (defun %draw-list-add-filled-ellipsoid (3d-draw-list
+					cmd-vector
 					ub32-oid
 					atom-group
 					model-mtx
@@ -2238,7 +2239,7 @@
                       first-index elem-count vtx-offset
                       atom-group model-mtx
                       nil *white-texture* nil nil material)))
-	    (vector-push-extend cmd (draw-list-cmd-vector 3d-draw-list))
+	    (vector-push-extend cmd cmd-vector)
 	    cmd))))))
 
 (defun %prim-reserve (draw-list vertex-count index-count vertex-type-size index-type-size)

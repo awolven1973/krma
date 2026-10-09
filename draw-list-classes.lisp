@@ -4,6 +4,10 @@
   (when krma::*debug*
     (declaim (optimize (safety 3) (debug 3)))))
 
+(defun new-cmd-vector ()
+  (make-array +draw-list-alloc-size+ :adjustable t :fill-pointer 0))
+	 
+
 (defclass draw-list-mixin ()
   ((index-array
     :accessor draw-list-index-array
@@ -13,15 +17,15 @@
     :reader draw-list-vertex-array
     :initarg :vertex-array)
    (cmd-vector
-    :initform (make-array +draw-list-alloc-size+ :adjustable t :fill-pointer 0)
-    :reader draw-list-cmd-vector
+    :initform nil ;;(new-cmd-vector)
+    :accessor draw-list-cmd-vector
     :initarg :cmd-vector)
+   (num-deleted
+    :initform nil
+    :accessor draw-list-num-deleted)
    (changed?
     :initform t
     :accessor draw-list-changed?)
-   (needs-compaction?
-    :initform nil
-    :accessor draw-list-needs-compaction?)
    (index-memory
     :accessor draw-list-index-memory
     :initform nil

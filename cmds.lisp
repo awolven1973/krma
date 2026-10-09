@@ -13,7 +13,9 @@
   (first-idx 0 :type (unsigned-byte 32))
   (elem-count 0 :type (unsigned-byte 32))
   (vtx-offset 0 :type (unsigned-byte 32))
-  (draw-list nil))
+  (draw-list nil)
+  (deleted? nil))
+  
 
 (defmethod print-object ((object essential-draw-indexed-cmd) stream)
   (print-unreadable-object (object stream :type t :identity t)

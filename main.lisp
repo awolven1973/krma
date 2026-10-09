@@ -321,7 +321,12 @@
   (declare (type draw-list-mixin draw-list))
   (setf (foreign-array-fill-pointer (draw-list-index-array draw-list)) 0)
   (setf (foreign-array-fill-pointer (draw-list-vertex-array draw-list)) 0)
-  (setf (fill-pointer (draw-list-cmd-vector draw-list)) 0))
+  (let ((cmd-vector (draw-list-cmd-vector draw-list)))
+    (when cmd-vector
+      (setf (fill-pointer cmd-vector) 0)
+      (when (draw-list-num-deleted draw-list)
+	(setf (car (draw-list-num-deleted draw-list)) 0))
+      )))
 
 (defun erase-immediate-mode-draw-data (dpy scene)
   (let* ((draw-data (im-draw-data scene)))
@@ -373,7 +378,7 @@
 				  (lparallel.queue:pop-queue work-queue)))
 	    do (funcall work)))
 
-    (sort-2d-draw-lists (aref (rm-draw-data scene) current-draw-data-index))    
+    (sort-2d-draw-lists (aref (rm-draw-data scene) current-draw-data-index))
     
     (values)))
 
@@ -436,6 +441,8 @@
 (defvar *wait-time* 1)
 
 (defun frame-iteration (dpy frame-count show-frame-rate?)
+
+  (bt:wait-on-semaphore (compacting-complete-semaphore dpy))
   
   (let* ((current-frame-cons (current-frame-cons dpy))
 	 (current-draw-data-cons (current-draw-data-cons dpy))
@@ -456,6 +463,8 @@
     
     (maybe-defer-debug (dpy)
       (call-immediate-mode-work-functions dpy))
+
+    
     
     ;; maybe create new descriptor set if select box size has changed
     ;; probably going to need a select box per framebuffer
@@ -473,8 +482,8 @@
 	(let ((frame-resources (frame-resources window)))
 	  (vk::wait-for-fence device frame-resources current-frame))))
     
-    (bt:wait-on-semaphore (compacting-complete-semaphore dpy))
-    (bt:signal-semaphore (frame-iteration-complete-semaphore dpy))
+    
+
     
     (do ((window (clui::display-window-list-head dpy) (clui::window-next window)))
 	((null window))
@@ -520,6 +529,8 @@
 	    (read-selection-set window number-of-images current-frame)))))
 
     (update-counts (current-frame-cons dpy) (current-draw-data-cons dpy) (number-of-images (swapchain (main-window (first (display-frame-managers dpy)))))))
+
+  (bt:signal-semaphore (frame-iteration-complete-semaphore dpy))
   
   (values))
 
@@ -537,11 +548,18 @@
 	    do (funcall work)))
     
     (loop for active-scene in active-scenes
-	  do (let ((rm-draw-data-pair (rm-draw-data active-scene)))
-	       (compact-draw-lists
-		dpy
-		;; the draw data that is not currently being modified
-		(aref rm-draw-data-pair alt-index))))
+	  do (let* ((rm-draw-data-pair (rm-draw-data active-scene))
+		    (draw-data (aref rm-draw-data-pair alt-index))
+		    (work-queue (draw-data-work-queue draw-data)))
+	       
+	       (maybe-defer-debug (dpy)
+		 (loop with work = nil
+		       while (setq work
+				   (and (lparallel.queue:peek-queue work-queue)
+					(lparallel.queue:pop-queue work-queue)))
+		       do (funcall work)))
+	       
+	       (compact-draw-lists dpy draw-data)))
     
     (bt:signal-semaphore (compacting-complete-semaphore dpy))))
 
